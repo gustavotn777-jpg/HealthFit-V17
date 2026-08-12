@@ -1,0 +1,70 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Compilar APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Encontrar projeto Android
+        run: |
+          echo "Arquivos do projeto:"
+          find . -maxdepth 3 -type f | sort
+
+      - name: Compilar APK
+        run: |
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+            ./gradlew assembleDebug
+          elif [ -f "./build.gradle.kts" ]; then
+            gradle assembleDebug
+          elif [ -f "./build.gradle" ]; then
+            gradle assembleDebug
+          elif [ -f "./HealthFit_V1_7_GitHubReady/gradlew" ]; then
+            cd HealthFit_V1_7_GitHubReady
+            chmod +x ./gradlew
+            ./gradlew assembleDebug
+          elif [ -f "./HealthFit_V1_7_GitHubReady/build.gradle.kts" ]; then
+            cd HealthFit_V1_7_GitHubReady
+            gradle assembleDebug
+          else
+            echo "ERRO: projeto Gradle não encontrado."
+            find . -name "settings.gradle*" -o -name "build.gradle*" -o -name "gradlew"
+            exit 1
+          fi
+
+      - name: Localizar APK
+        run: |
+          echo "APKs encontrados:"
+          find . -type f -name "*.apk" -print
+
+      - name: Disponibilizar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: HealthFit-debug
+          path: |
+            */build/outputs/apk//.apk
+          if-no-files-found: error
